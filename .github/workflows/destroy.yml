@@ -1,0 +1,113 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  PROJECT_NAME: genapp
+  ENVIRONMENT: dev
+
+jobs:
+  destroy:
+    name: Destroy AWS Resources
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Pre-Destroy Cleanup
+        continue-on-error: true
+        run: |
+          REGION="${{ env.AWS_REGION }}"
+          CLUSTER="${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-cluster"
+          
+          echo "=== Cleaning up Bedrock Knowledge Base ==="
+          KB_ID=$(aws bedrock-agent list-knowledge-bases \
+            --region $REGION \
+            --query "knowledgeBaseSummaries[?name=='${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-kb'].knowledgeBaseId" \
+            --output text 2>/dev/null || true)
+          
+          if [ ! -z "$KB_ID" ] && [ "$KB_ID" != "None" ]; then
+            echo "Found Knowledge Base: $KB_ID"
+            DATA_SOURCES=$(aws bedrock-agent list-data-sources \
+              --knowledge-base-id $KB_ID \
+              --region $REGION \
+              --query 'dataSourceSummaries[].dataSourceId' \
+              --output text 2>/dev/null || true)
+            
+            for ds in $DATA_SOURCES; do
+              echo "Deleting data source: $ds"
+              aws bedrock-agent delete-data-source \
+                --knowledge-base-id $KB_ID \
+                --data-source-id $ds \
+                --region $REGION || true
+            done
+            sleep 15
+          fi
+          
+          echo "=== Cleaning up ECS Services ==="
+          SERVICES=$(aws ecs list-services \
+            --cluster $CLUSTER \
+            --region $REGION \
+            --query 'serviceArns' \
+            --output text 2>/dev/null || true)
+          
+          for svc in $SERVICES; do
+            echo "Force deleting service: $svc"
+            aws ecs delete-service \
+              --cluster $CLUSTER \
+              --service $svc \
+              --force \
+              --region $REGION || true
+          done
+          
+          echo "=== Cleaning up OpenSearch Serverless Policies ==="
+          aws opensearchserverless delete-access-policy \
+            --name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-access \
+            --type data \
+            --region $REGION || true
+          
+          aws opensearchserverless delete-security-policy \
+            --name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-net \
+            --type network \
+            --region $REGION || true
+          
+          aws opensearchserverless delete-security-policy \
+            --name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-enc \
+            --type encryption \
+            --region $REGION || true
+          
+          echo "Waiting 30s for AWS to propagate deletions..."
+          sleep 30
+
+      - name: Terraform Destroy
+        working-directory: terraform
+        run: terraform destroy -auto-approve
+
+      - name: Destruction Summary
+        if: success()
+        run: |
+          echo "## 🗑️ Infrastructure Destroyed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All AWS resources have been successfully deleted." >> $GITHUB_STEP_SUMMARY

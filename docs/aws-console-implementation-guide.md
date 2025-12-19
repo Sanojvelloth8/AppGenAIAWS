@@ -33,7 +33,7 @@ Before starting, ensure you have:
 
 ## Phase 1: Networking (VPC)
 
-### Step 1.1: Create VPC
+### Step 1.1: Create VPC.
 
 1. Navigate to **VPC Console** → [https://console.aws.amazon.com/vpc](https://console.aws.amazon.com/vpc)
 2. Click **"Create VPC"**

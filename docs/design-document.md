@@ -17,6 +17,7 @@
 GenApp is a **Retrieval-Augmented Generation (RAG)** application that enables users to upload documents and ask questions about them using natural language. The system combines AWS Bedrock's Knowledge Base for semantic document retrieval with Amazon Titan for intelligent response generation.
 
 ### Key Capabilities
+
 - 📄 Document upload and indexing
 - 🔍 Semantic search across documents
 - 💬 Conversational AI with memory

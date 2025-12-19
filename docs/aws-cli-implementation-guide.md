@@ -1,6 +1,6 @@
 # AWS CLI Implementation Guide
 
-This guide provides step-by-step AWS CLI commands to deploy the GenApp RAG application.
+This guide provides step-by-step AWS CLI commands to deploy the GenApp RAG application
 
 ## Prerequisites
 

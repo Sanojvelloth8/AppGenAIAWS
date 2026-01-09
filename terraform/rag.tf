@@ -57,7 +57,7 @@ resource "aws_opensearchserverless_collection" "main" {
 
 # Bedrock KB Role
 resource "aws_iam_role" "bedrock_kb" {
-  name = "${var.project_name}-${var.environment}-kb-role"
+  name = "${var.project_name}-${var.environment}-kb-role-new"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

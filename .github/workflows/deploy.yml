@@ -1,8 +1,8 @@
-name: Deploy Infrastructures
+name: Deploy Infrastructure
 
 on:
   push:
-  branches: [main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

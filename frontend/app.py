@@ -4,7 +4,7 @@ import os
 import uuid
 import boto3
 
-# Config
+# Configs
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 COGNITO_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID")
 COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID")
@@ -12,7 +12,7 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 st.set_page_config(page_title="GenApp Chat", page_icon="🤖", layout="wide")
 
-# Session state
+# Session states
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 if "messages" not in st.session_state:
